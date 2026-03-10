@@ -1,0 +1,15 @@
+This package is a Swift rewrite of `okmain`, originally created by Dan Groshev
+and published at:
+
+https://github.com/si14/okmain
+
+The implementation in this repository ports the public behavior and algorithmic
+approach of the upstream project into a Swift Package for Apple platforms.
+
+Upstream `okmain` is distributed under a dual license:
+
+- Apache License 2.0
+- MIT License
+
+This repository includes both upstream license texts in `LICENSE-APACHE` and
+`LICENSE-MIT` and is distributed under the same licensing model.
