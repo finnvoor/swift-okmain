@@ -75,6 +75,50 @@ import Testing
     #expect(image.height == 4)
 }
 
+@Test func matchesRustOkmainGradientFixture() throws {
+    let rgb = makeRGB(width: 17, height: 8) { x, y, width, height in
+        [
+            UInt8((x * 255) / (width - 1)),
+            UInt8((y * 255) / (height - 1)),
+            UInt8((x * 17 + y * 31) % 256),
+        ]
+    }
+    let image = try makeImage(width: 17, height: 8, rgb: rgb)
+
+    let colors = try Okmain.colors(in: image)
+    #expect(colors.map { $0.red } == [141, 146, 203, 52])
+    #expect(colors.map { $0.green } == [86, 220, 115, 46])
+    #expect(colors.map { $0.blue } == [199, 149, 69, 81])
+}
+
+@Test func matchesRustOkmainCheckerFixture() throws {
+    let rgb = makeRGB(width: 19, height: 11) { x, y, _, _ in
+        if ((x / 3) + (y / 2)) % 3 == 0 {
+            return [230, 40, 120]
+        }
+        if (x + y).isMultiple(of: 2) {
+            return [40, 190, 70]
+        }
+        return [60, 70, 210]
+    }
+    let image = try makeImage(width: 19, height: 11, rgb: rgb)
+
+    let colors = try Okmain.colors(in: image)
+    #expect(colors.map { $0.red } == [230, 60, 40])
+    #expect(colors.map { $0.green } == [40, 70, 190])
+    #expect(colors.map { $0.blue } == [120, 210, 70])
+}
+
+@Test func matchesRustOkmainRingsFixture() throws {
+    let rgb = makeRGB(width: 31, height: 29, fill: ringsPixel)
+    let image = try makeImage(width: 31, height: 29, rgb: rgb)
+
+    let colors = try Okmain.colors(in: image)
+    #expect(colors.map { $0.red } == [147, 190, 73, 124])
+    #expect(colors.map { $0.green } == [221, 91, 71, 159])
+    #expect(colors.map { $0.blue } == [124, 161, 120, 136])
+}
+
 private func makeImage(width: Int, height: Int, rgb: [UInt8]) throws -> CGImage {
     var rgba = [UInt8]()
     rgba.reserveCapacity(width * height * 4)
@@ -107,4 +151,28 @@ private func makeImage(width: Int, height: Int, rgb: [UInt8]) throws -> CGImage 
     }
 
     return image
+}
+
+private func makeRGB(
+    width: Int,
+    height: Int,
+    fill: (_ x: Int, _ y: Int, _ width: Int, _ height: Int) -> [UInt8]
+) -> [UInt8] {
+    var rgb = [UInt8]()
+    rgb.reserveCapacity(width * height * 3)
+
+    for y in 0..<height {
+        for x in 0..<width {
+            rgb += fill(x, y, width, height)
+        }
+    }
+
+    return rgb
+}
+
+private func ringsPixel(x: Int, y: Int, _: Int, _: Int) -> [UInt8] {
+    let red = UInt8((x * x + 3 * y + 17) % 256)
+    let green = UInt8((5 * x + y * y + 29) % 256)
+    let blue = UInt8((13 * x + 7 * y + x * y) % 256)
+    return [red, green, blue]
 }

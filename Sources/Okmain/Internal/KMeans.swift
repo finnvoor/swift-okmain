@@ -40,7 +40,7 @@ enum KMeans {
             let update = updateCentroids(sample: sample, centroids: &centroids, assignments: assignments)
 
             for index in 0..<actualK where update.counts[index] == 0 {
-                let replacement = rng.randomInt(upperBound: sample.count)
+                let replacement = rng.randomRange(upperBound: sample.count)
                 centroids[index] = sample.point(at: replacement)
             }
 
@@ -102,7 +102,7 @@ enum KMeans {
         var initial = [Int]()
         initial.reserveCapacity(k)
 
-        let first = rng.randomInt(upperBound: count)
+        let first = rng.randomRange(upperBound: count)
         initial.append(first)
 
         var minDistances = [Float](repeating: 0, count: count)
@@ -153,10 +153,10 @@ enum KMeans {
 
     private static func sampleByDistance(minDistances: [Float], sum: Float, rng: inout Xoshiro256PlusPlus) -> Int {
         if sum <= 0 {
-            return rng.randomInt(upperBound: minDistances.count)
+            return rng.randomRange(upperBound: minDistances.count)
         }
 
-        let threshold = rng.randomFloat() * sum
+        let threshold = rng.randomF32() * sum
         var cumulative: Float = 0
         for (index, distance) in minDistances.enumerated() {
             cumulative += distance
@@ -194,7 +194,7 @@ private struct Xoshiro256PlusPlus {
         self.s3 = splitMix.next()
     }
 
-    mutating func next() -> UInt64 {
+    mutating func nextU64() -> UInt64 {
         let result = (s0 &+ s3).rotatedLeft(by: 23) &+ s0
         let t = s1 << 17
 
@@ -208,12 +208,36 @@ private struct Xoshiro256PlusPlus {
         return result
     }
 
-    mutating func randomFloat() -> Float {
-        Float(Double(next()) / Double(UInt64.max))
+    mutating func nextU32() -> UInt32 {
+        UInt32(nextU64() >> 32)
     }
 
-    mutating func randomInt(upperBound: Int) -> Int {
-        Int(next() % UInt64(upperBound))
+    mutating func randomF32() -> Float {
+        let precision: UInt32 = 24
+        let scale: Float = 1 / Float(1 << precision)
+        let value = nextU32() >> (32 - precision)
+        return scale * Float(value)
+    }
+
+    mutating func randomRange(upperBound: Int) -> Int {
+        precondition(upperBound > 0)
+        let range = UInt32(upperBound)
+        if range == 0 {
+            return Int(nextU32())
+        }
+
+        let (result, lowOrder) = nextU32().multipliedFullWidth(by: range)
+        var high = result
+
+        if lowOrder > (0 &- range) {
+            let (newHigh, _) = nextU32().multipliedFullWidth(by: range)
+            let (_, overflow) = lowOrder.addingReportingOverflow(newHigh)
+            if overflow {
+                high &+= 1
+            }
+        }
+
+        return Int(high)
     }
 }
 
